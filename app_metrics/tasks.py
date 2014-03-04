@@ -36,6 +36,15 @@ try:
 except ImportError:
     librato = None
 
+# For graphite support
+try:
+    import graphiteudp
+    graphiteudp.init(
+        getattr(settings, 'APP_METRICS_GRAPHITE_HOST', '127.0.0.1'),
+        prefix=getattr(settings, 'APP_METRICS_GRAPHITE_APIKEY', ''))
+except ImportError:
+    graphiteudp = None
+
 
 class MixPanelTrackError(Exception):
     pass
@@ -180,3 +189,12 @@ def librato_metric_task(name, num, **kwargs):
     api = librato.connect(settings.APP_METRICS_LIBRATO_USER,
                           settings.APP_METRICS_LIBRATO_TOKEN)
     api.submit(name, num, **kwargs)
+
+
+@task
+def graphite_metric_task(name, num, **kwargs):
+    if graphiteudp is None:
+        raise ImproperlyConfigured("You must install 'graphiteudp' in order to use this backend.")
+    graphiteudp.send(name, num)
+
+
